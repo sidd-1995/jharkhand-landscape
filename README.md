@@ -3,7 +3,8 @@
 An interactive, fully self-contained (offline, no keys, no CDN) sense-making view of the
 development-partner ecosystem in Jharkhand: **partners × districts × themes**, with TRI
 presence, Common Ground blocks, block/GP-level coverage, CSR flow, external organisations,
-funders and government spend — plus **Ecosystem Health** and **Place Health** scorecards.
+funders, government spend and district/block-level **Self Help Group (SHG)** counts — plus
+**Ecosystem Health** and **Place Health** scorecards.
 
 **Live:** https://ashwask.github.io/jharkhand-landscape/
 
@@ -14,11 +15,12 @@ data in `model.json` from the source spreadsheets.
 
 ## What's inside
 
-**Map — 9 lenses** (inline-SVG choropleth, no map tiles):
+**Map — 10 lenses** (inline-SVG choropleth, no map tiles):
 Partner density · Theme breadth · CSR spend · Dominant theme · Coverage gap ·
-Place health score · External orgs ✳ · DMF mining fund ✳ · **Block presence (beta)**.
-Click any district for a detail panel (partners, themes, block/GP coverage, other orgs,
-DMF, place-health score + breakdown, 10-year CSR trend). Hover for a quick readout.
+Place health score · External orgs ✳ · DMF mining fund ✳ · **Block presence (beta)** ·
+**SHG density**.
+Click any district for a detail panel (partners, themes, block/GP coverage, SHG counts,
+other orgs, DMF, place-health score + breakdown, 10-year CSR trend). Hover for a quick readout.
 
 **Block coverage (beta)** — an optional per-district view of which blocks/GPs have known
 partner presence, plus the villages where recorded. **Count-only and deliberately partial:**
@@ -28,9 +30,18 @@ presence, not total coverage*. There is no "X of Y" ratio because the source fil
 per-district block/GP totals (denominator); drop in an LGD/Census block-total sheet to
 upgrade it to ratios.
 
+**Self Help Groups (SHG)** — district and block-level SHG counts (New/Revived/Pre-NRLM,
+total SHGs, total members) from the public DAY-NRLM MIS. A collapsible box in the district
+detail panel shows the district total plus a per-block breakdown; unlike block coverage,
+this is a **complete state-run census** (all 24 districts, ~260 blocks), not a partner
+presence layer — it's grassroots infrastructure the partner ecosystem can build on, not a
+measure of partner activity itself.
+
 **Scorecards**
 - **Ecosystem Health index** — composite of coverage, aspirational reach, resilience,
-  thematic balance, network depth and resource alignment.
+  thematic balance, network depth, resource alignment and **SHG reach** (the share of the
+  state's SHG member base sitting in partner-covered districts — a co-location read on how
+  much existing grassroots infrastructure the ecosystem already touches).
 - **Place Health** — every district scored 0–100 (partner presence 45% · theme breadth 30% ·
   resilience 25%), ranked neediest-first, tagged Whitespace / Priority / Fragile / Served.
 
@@ -58,6 +69,9 @@ map lens (e.g. `#lens=placehealth`).
 - **Block/GP coverage** reflects only the two sources with block-level resolution (Common
   Ground, TRI); absence of blocks for a district means "not recorded at block level", not
   "no partners". It is a count of known presence, never a coverage ratio.
+- **SHG counts** are a government-run census (DAY-NRLM), not a partner-presence layer —
+  a district with zero mapped partners can still show thousands of SHGs. It measures
+  existing grassroots infrastructure, not this ecosystem's activity.
 - Funder ₹ figures, where shown, are **organisation-level** (not Jharkhand-specific).
 - The DMF district split is cumulative to Mar-2018 (CSE); the state total has since grown
   well beyond ₹12,000 Cr.
@@ -69,8 +83,10 @@ map lens (e.g. `#lens=placehealth`).
 Partner geography/thematic sheets · TRI Geographic Presence (Jul 2026) · Common Ground block
 list · SOTH places list · [MCA National CSR Portal](https://www.csr.gov.in/) (district CSR) ·
 [CSE](https://www.cseindia.org/) & [CSEP](https://csep.org/) (DMF) · Jharkhand state budget ·
-org & funder websites (PRADAN, CInI, Vikas Bharti, CEED, JSLPS, Tata Steel Foundation, BRLF,
-Azim Premji Foundation, PHIA, Rainmatter, EdelGive, Rohini Nilekani, Tata Trusts).
+[DAY-NRLM public MIS](https://nrlm.gov.in/) (SHG counts, via the state e-governance report
+portal) · org & funder websites (PRADAN, CInI, Vikas Bharti, CEED, JSLPS, Tata Steel
+Foundation, BRLF, Azim Premji Foundation, PHIA, Rainmatter, EdelGive, Rohini Nilekani, Tata
+Trusts).
 
 District boundaries from [udit-001/india-maps-data](https://github.com/udit-001/india-maps-data)
 (2011 census; public government boundary data, curated by the upstream repo).
@@ -79,12 +95,17 @@ District boundaries from [udit-001/india-maps-data](https://github.com/udit-001/
 
 ```bash
 python3 build_blocks.py   # (optional) re-parse the source .xlsx → block/GP coverage in model.json
+python3 fetch_shg.py      # (optional) refetch district/block SHG counts → jh_shg_data.json (needs network)
+python3 build_shg.py      # (optional) merge jh_shg_data.json → SHG counts in model.json
 python3 build.py          # reads model.json + jh_districts.geojson → writes index.html
 ```
 
 `build.py` needs only Python 3 (stdlib) and the output is dependency-free. `build_blocks.py`
 additionally needs `openpyxl` and the source spreadsheets present, and only needs re-running
-when the block/GP source data changes.
+when the block/GP source data changes. `fetch_shg.py` needs network access to the public
+DAY-NRLM MIS and only needs re-running when the SHG figures need refreshing; `build_shg.py`
+then needs only `jh_shg_data.json` (already committed, so a fresh clone can skip `fetch_shg.py`
+and go straight to `build_shg.py`).
 
 ## License
 

@@ -138,7 +138,8 @@ table{border-collapse:collapse; width:100%; font-size:12.5px}
 .hindex .lbl{font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; opacity:.8; margin-top:4px}
 .hindex .band{align-self:flex-start; margin-top:13px; font-size:12px; font-weight:700; padding:4px 13px; border-radius:20px}
 .hindex .desc{font-size:12.5px; opacity:.9; margin-top:12px; line-height:1.45}
-.hcards{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px}
+.hcards{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
+@media(max-width:960px){.hcards{grid-template-columns:1fr 1fr 1fr}}
 @media(max-width:760px){.hcards{grid-template-columns:1fr 1fr}}
 .hc{border:1px solid var(--line); border-radius:12px; padding:12px 13px; background:#fff}
 .hc .band{font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:2px 8px; border-radius:20px}
@@ -388,10 +389,14 @@ const lenses={
  dmf:{label:'DMF mining fund ✳',fill:d=>{const v=GOVT_DMF[d]||0;if(!v)return '#f2eef6';const t=v/maxDMF;const p=['#e7dcf0','#c9b0e0','#a97fce','#8a4fbf','#6b2fa0'];return p[Math.min(p.length-1,Math.floor(t*(p.length-1)+0.001))];},
    legend:()=>gradLegendC('DMF collected ₹Cr (to Mar-2018, CSE)',['#f2eef6','#c9b0e0','#a97fce','#8a4fbf','#6b2fa0'],'0 → ₹'+maxDMF+' Cr')},
  blockcov:{label:'Block presence (beta)',fill:d=>{const n=blockN(d);if(!n)return '#f1f5fa';const p=['#dcefe6','#a6ddc4','#6ec6a4','#3aa987','#1f7d63'];return p[Math.min(p.length-1,Math.ceil(n/Math.max(maxBlk,1)*(p.length-1)))];},
-   legend:()=>gradLegendC('Known block-level presence — CG + TRI only',['#f1f5fa','#a6ddc4','#6ec6a4','#3aa987','#1f7d63'],'0 → '+maxBlk+' block/GP')}
+   legend:()=>gradLegendC('Known block-level presence — CG + TRI only',['#f1f5fa','#a6ddc4','#6ec6a4','#3aa987','#1f7d63'],'0 → '+maxBlk+' block/GP')},
+ shg:{label:'SHG density',fill:d=>{const n=shgN(d);if(!n)return '#faf3e8';const p=['#faf3e8','#f0dcae','#e0b968','#c98e2e','#9c6512'];return p[Math.min(p.length-1,Math.ceil(n/Math.max(maxSHG,1)*(p.length-1)))];},
+   legend:()=>gradLegendC('Self Help Groups (DAY-NRLM MIS)',['#faf3e8','#f0dcae','#e0b968','#c98e2e','#9c6512'],'0 → '+maxSHG.toLocaleString()+' SHGs')}
 };
 const blockN=d=>(D[d].blockcov||[]).length;
 const maxBlk=Math.max(1,...CANON.map(blockN));
+const shgN=d=>(D[d].shg||{}).total||0;
+const maxSHG=Math.max(1,...CANON.map(shgN));
 function domTheme(d){const f={};PARTNERS.forEach(p=>{if(p.districts.includes(d))p.themes.forEach(t=>f[t]=(f[t]||0)+1);});
  let best=null,bv=0;for(const k in f)if(f[k]>bv){bv=f[k];best=k;}return best;}
 let curLens='placehealth', selD=null;
@@ -492,6 +497,15 @@ function selectDist(name){selD=name;
   h+='<ul class="blist">';
   bc.forEach(b=>{h+='<li><b>'+b.name+'</b> '+b.by.map(s=>'<span class="tag">'+s+'</span>').join('')
     +(b.villages&&b.villages.length?'<br><span class="mini">villages: '+b.villages.join(', ')+'</span>':'')+'</li>';});
+  h+='</ul></details></div>';
+ }
+ // SHG (Self Help Group) counts — district total + block-wise breakdown, DAY-NRLM MIS
+ const shg=v.shg;
+ if(shg&&shg.total){
+  h+='<div class="sec"><details class="bcov"><summary><b>Self Help Groups (SHG)</b> · <b>'+shg.total.toLocaleString()+'</b> SHGs · '+shg.members.toLocaleString()+' members</summary>';
+  h+='<div class="mini" style="margin:5px 0 8px">Source: DAY-NRLM public MIS (block-wise rollup) — New '+shg.new.toLocaleString()+' · Revived '+shg.revived.toLocaleString()+' · Pre-NRLM '+shg.prenrlm.toLocaleString()+'.</div>';
+  h+='<ul class="blist">';
+  shg.blocks.forEach(b=>{h+='<li><b>'+b.name+'</b> <span class="mini">'+b.total.toLocaleString()+' SHGs · '+b.members.toLocaleString()+' members</span></li>';});
   h+='</ul></details></div>';
  }
  const ext=extByDist(name);
@@ -598,15 +612,21 @@ function buildHealth(){
  const r=pearson(CANON.map(d=>D[d].csr[Y0]||0),CANON.map(effP));
  const csrCov=CANON.reduce((s,d)=>s+(effP(d)?(D[d].csr[Y0]||0):0),0)/csrTot*100;
  const lbl=INCLUDE_EXT?'org':'partner';
+ // SHG (DAY-NRLM) reach — share of the state's SHG member base sitting in partner-covered districts:
+ // a co-location read on how much existing grassroots (mostly women's) infrastructure the ecosystem already touches.
+ const shgTot=CANON.reduce((s,d)=>s+((D[d].shg||{}).members||0),0);
+ const shgMemCov=CANON.reduce((s,d)=>s+(effP(d)?((D[d].shg||{}).members||0):0),0);
+ const shgCov=shgTot?shgMemCov/shgTot*100:0;
  const dims=[
   {n:'Geographic coverage',v:cov.length+'/24',s:cov.length/24*100,d:Math.round(cov.length/24*100)+'% of districts have ≥1 '+lbl+'.'},
   {n:'Aspirational reach',v:aspCov.length+'/'+asp.length,s:aspCov.length/asp.length*100,d:(asp.length-aspCov.length)+' priority districts still unserved: '+(asp.filter(d=>!effP(d)).join(', ')||'none')+'.'},
   {n:'Resilience',v:(24-wht.length-single.length)+'/24',s:(24-wht.length-single.length)/24*100,d:single.length+' single-'+lbl+' + '+wht.length+' zero-'+lbl+' districts = key-person risk.'},
   {n:'Thematic balance',v:(THEMES.length-fragile.length)+'/'+THEMES.length,s:(THEMES.length-fragile.length)/THEMES.length*100,d:'Thin themes (≤2 '+lbl+'s): '+(fragile.join(', ')||'none')+'.'},
   {n:'Network depth',v:hubs.length+' hubs',s:hubs.length/24*100,d:hubs.length+' districts with ≥3 '+lbl+'s; avg '+avgP.toFixed(1)+' where present.'},
-  {n:'Resource alignment',v:'r = '+r.toFixed(2),s:(r+1)/2*100,d:Math.round(csrCov)+'% of CSR lands in covered districts, but flow barely tracks partner effort — deliberate co-location is untapped.'}
+  {n:'Resource alignment',v:'r = '+r.toFixed(2),s:(r+1)/2*100,d:Math.round(csrCov)+'% of CSR lands in covered districts, but flow barely tracks partner effort — deliberate co-location is untapped.'},
+  {n:'SHG reach',v:Math.round(shgCov)+'% of SHG base',s:shgCov,d:Math.round(shgCov)+'% of the '+(shgTot/1e6).toFixed(1)+'M SHG members statewide (DAY-NRLM) sit in districts with a mapped '+lbl+' — how much existing grassroots infrastructure the ecosystem already touches.'}
  ];
- const W={0:.15,1:.25,2:.20,3:.15,4:.15,5:.10};
+ const W={0:.13,1:.21,2:.17,3:.13,4:.13,5:.08,6:.15};
  const idx=Math.round(dims.reduce((s,dm,i)=>s+dm.s*W[i],0));
  const b=BAND[band(idx)];
  document.getElementById('hindex').innerHTML=
