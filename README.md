@@ -6,6 +6,8 @@ presence, Common Ground blocks, block/GP-level coverage, CSR flow, external orga
 funders, government spend and district/block-level **Self Help Group (SHG)** counts — plus
 **Ecosystem Health** and **Place Health** scorecards.
 
+Live with FPOs & SHGs (Local Institution) : https://sidd-1995.github.io/jharkhand-landscape/
+
 **Live:** https://ashwask.github.io/jharkhand-landscape/
 
 The whole app is a single `index.html` (~200 KB) with the data and the 24-district GeoJSON
