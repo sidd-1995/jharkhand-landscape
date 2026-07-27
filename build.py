@@ -391,12 +391,16 @@ const lenses={
  blockcov:{label:'Block presence (beta)',fill:d=>{const n=blockN(d);if(!n)return '#f1f5fa';const p=['#dcefe6','#a6ddc4','#6ec6a4','#3aa987','#1f7d63'];return p[Math.min(p.length-1,Math.ceil(n/Math.max(maxBlk,1)*(p.length-1)))];},
    legend:()=>gradLegendC('Known block-level presence — CG + TRI only',['#f1f5fa','#a6ddc4','#6ec6a4','#3aa987','#1f7d63'],'0 → '+maxBlk+' block/GP')},
  shg:{label:'SHG density',fill:d=>{const n=shgN(d);if(!n)return '#faf3e8';const p=['#faf3e8','#f0dcae','#e0b968','#c98e2e','#9c6512'];return p[Math.min(p.length-1,Math.ceil(n/Math.max(maxSHG,1)*(p.length-1)))];},
-   legend:()=>gradLegendC('Self Help Groups (DAY-NRLM MIS)',['#faf3e8','#f0dcae','#e0b968','#c98e2e','#9c6512'],'0 → '+maxSHG.toLocaleString()+' SHGs')}
+   legend:()=>gradLegendC('Self Help Groups (DAY-NRLM MIS)',['#faf3e8','#f0dcae','#e0b968','#c98e2e','#9c6512'],'0 → '+maxSHG.toLocaleString()+' SHGs')},
+ fpo:{label:'FPO density',fill:d=>{const n=fpoN(d);if(!n)return '#eef3ea';const p=['#eef3ea','#c9dfba','#9ec98a','#6fae5c','#3d8730'];return p[Math.min(p.length-1,Math.ceil(n/Math.max(maxFPO,1)*(p.length-1)))];},
+   legend:()=>gradLegendC('FPOs (FPO Platform)',['#eef3ea','#c9dfba','#9ec98a','#6fae5c','#3d8730'],'0 → '+maxFPO.toLocaleString()+' FPOs')}
 };
 const blockN=d=>(D[d].blockcov||[]).length;
 const maxBlk=Math.max(1,...CANON.map(blockN));
 const shgN=d=>(D[d].shg||{}).total||0;
 const maxSHG=Math.max(1,...CANON.map(shgN));
+const fpoN=d=>(D[d].fpo||{}).fpos||0;
+const maxFPO=Math.max(1,...CANON.map(fpoN));
 function domTheme(d){const f={};PARTNERS.forEach(p=>{if(p.districts.includes(d))p.themes.forEach(t=>f[t]=(f[t]||0)+1);});
  let best=null,bv=0;for(const k in f)if(f[k]>bv){bv=f[k];best=k;}return best;}
 let curLens='placehealth', selD=null;
@@ -507,6 +511,13 @@ function selectDist(name){selD=name;
   h+='<ul class="blist">';
   shg.blocks.forEach(b=>{h+='<li><b>'+b.name+'</b> <span class="mini">'+b.total.toLocaleString()+' SHGs · '+b.members.toLocaleString()+' members</span></li>';});
   h+='</ul></details></div>';
+ }
+ // FPO (Farmer Producer Organisation) counts — district-level only, FPO Platform
+ const fpo=v.fpo;
+ if(fpo&&fpo.fpos){
+  h+='<div class="sec"><div class="t">FPOs (Farmer Producer Organisations)</div><div class="blk">'
+   +'<b>'+fpo.fpos.toLocaleString()+'</b> FPOs · '+fpo.shareholders.toLocaleString()+' shareholders · '
+   +fpo.complete_financials.toLocaleString()+' with complete financials <span class="mini">(FPO Platform)</span></div></div>';
  }
  const ext=extByDist(name);
  if(ext.length){h+='<div class="sec"><div class="t">Other orgs — indicative ✳</div><div class="chips">'+ext.map(o=>'<span class="chip" style="border-left:3px solid #b07a1f">'+o+'</span>').join('')+'</div></div>';}
