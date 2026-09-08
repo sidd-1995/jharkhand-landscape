@@ -35,7 +35,8 @@ a{color:var(--accent)}
 .intro-lead{font-size:15px; line-height:1.5; color:var(--ink)}
 .intro-body{font-size:13px; line-height:1.55; color:var(--ink2)}
 .intro-src{font-size:11.5px; line-height:1.45; color:var(--mut)}
-.csrlens{padding-top:0}
+.csrlens{display:none;padding:8px 16px 0 28px;position:relative}
+.csrlens::before{content:'';position:absolute;left:16px;top:0;bottom:8px;width:2px;background:var(--accent);opacity:.35;border-radius:2px}
 .csrf{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);border:1px solid var(--line);background:#fff;padding:5px 10px 5px 12px;border-radius:8px;cursor:pointer}
 .csrf:hover{border-color:var(--accent)}
 .csrf select{font:inherit;font-size:12px;color:var(--ink2);border:none;background:transparent;cursor:pointer;outline:none;max-width:260px}
@@ -179,9 +180,9 @@ table{border-collapse:collapse; width:100%; font-size:12.5px}
  <div class="card">
    <h2>District map</h2>
    <div class="lens" id="lens"></div>
-   <div class="lens csrlens">
+   <div class="lens csrlens" id="csrlens">
     <label class="csrf">Year <select id="csrYearSel"></select></label>
-    <label class="csrf">Domain <select id="csrDomainSel"></select></label>
+    <label class="csrf">CSR Domain <select id="csrDomainSel"></select></label>
    </div>
    <div id="mapbox"></div>
    <div class="legend" id="legend"></div>
@@ -483,6 +484,7 @@ const lensBox=document.getElementById('lens');
 Object.entries(lenses).forEach(([k,v])=>{const b=el('button',k===curLens?'on':'',v.label);b.onclick=()=>{curLens=k;paint();};lensBox.appendChild(b);});
 function paint(){
  [...lensBox.children].forEach(b=>b.classList.toggle('on',b.textContent===lenses[curLens].label));
+ document.getElementById('csrlens').style.display = curLens==='csr' ? 'flex' : 'none';
  CANON.forEach(d=>{const f=lenses[curLens].fill(d); paths[d].setAttribute('fill',f);
    // label contrast + place-health score on map
    const dark=isDark(f); labels[d].classList.toggle('lite',dark);
