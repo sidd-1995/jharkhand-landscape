@@ -81,11 +81,14 @@ svg.map{width:100%; height:auto; display:block}
 .blist{list-style:none; margin:4px 0 0; padding:0}
 .blist li{padding:5px 0; border-bottom:1px solid var(--line2); font-size:13px}
 .blist li:last-child{border:0}
-.spark{display:flex; align-items:flex-end; gap:3px; height:44px; margin-top:6px}
-.spark .bar{flex:1; display:flex; flex-direction:column-reverse; background:var(--line2); border-radius:2px 2px 0 0; overflow:hidden; min-height:2px; opacity:.9}
+.spark{display:flex; align-items:flex-end; gap:16px; margin-top:12px}
+.spark .col{flex:1; display:flex; flex-direction:column; align-items:center; min-width:0}
+.spark .val{font-size:12px; font-weight:700; color:var(--ink2); margin-bottom:6px; white-space:nowrap}
+.spark .barwrap{width:100%; height:150px; display:flex; align-items:flex-end}
+.spark .bar{width:100%; display:flex; flex-direction:column-reverse; background:var(--line2); border-radius:4px 4px 0 0; overflow:hidden; min-height:2px; opacity:.92}
 .spark .bar:hover{opacity:1}
 .spark .seg{width:100%}
-.sparkx{display:flex; justify-content:space-between; font-size:9px; color:var(--mut); margin-top:3px}
+.spark .yr{writing-mode:vertical-rl; transform:rotate(180deg); font-size:11px; font-weight:600; color:var(--ink2); margin-top:8px; white-space:nowrap}
 /* matrix */
 .mtx{overflow-x:auto}
 table{border-collapse:collapse; width:100%; font-size:12.5px}
@@ -546,19 +549,19 @@ function selectDist(name){selD=name;
  const ext=extByDist(name);
  if(ext.length){h+='<div class="sec"><div class="t">Other orgs — indicative ✳</div><div class="chips">'+ext.map(o=>'<span class="chip" style="border-left:3px solid #b07a1f">'+o+'</span>').join('')+'</div></div>';}
  if(GOVT_DMF[name]){h+='<div class="sec"><div class="t">DMF mining fund ✳</div><div class="blk">₹'+GOVT_DMF[name]+' Cr collected (cumulative to Mar-2018, CSE) — mining-affected-area fund.</div></div>';}
- // CSR spend trend — stacked by domain, dynamic to this district (independent of the map's Year/CSR Domain filter)
- const yr=[...YEARS].reverse();
+ // CSR spend trend — stacked by domain, last 5 years, dynamic to this district (independent of the map's Year/CSR Domain filter)
+ const yr=[...YEARS].slice(0,5).reverse();
  const byDom=v.csrByDomain||{};
  const yrTot=yr.map(y=>v.csr[y]||0); const mx=Math.max(...yrTot,1);
  const domsHere=CSR_DOMAINS.filter(dm=>yr.some(y=>((byDom[y]||{})[dm]||0)>0));
- h+='<div class="sec"><div class="t">CSR spend trend (₹ Cr) — split by domain</div><div class="spark">';
+ h+='<div class="sec"><div class="t">CSR spend trend (₹ Cr) — split by domain (last 5 years)</div><div class="spark">';
  yr.forEach((y,i)=>{const tot=yrTot[i];
-   h+='<div class="bar" style="height:'+(tot/mx*100)+'%" title="'+y+': '+fmtCr(tot)+'">';
+   h+='<div class="col"><div class="val">'+fmtCr(tot)+'</div><div class="barwrap"><div class="bar" style="height:'+(tot/mx*100)+'%" title="'+y+': '+fmtCr(tot)+'">';
    domsHere.forEach(dm=>{const sv=(byDom[y]||{})[dm]||0; if(sv<=0)return;
      h+='<div class="seg" style="height:'+(sv/tot*100)+'%;background:'+domainPalette[dm]+'" title="'+shortDom(dm)+' · '+y+': '+fmtCr(sv)+'"></div>';});
-   h+='</div>';});
- h+='</div><div class="sparkx"><span>'+yr[0].slice(0,4)+'</span><span>'+yr[yr.length-1].slice(2)+'</span></div>';
- if(domsHere.length)h+='<div class="chips" style="margin-top:6px">'+domsHere.map(dm=>'<span class="chip" style="border-left:3px solid '+domainPalette[dm]+'">'+shortDom(dm)+'</span>').join('')+'</div>';
+   h+='</div></div><div class="yr">'+y+'</div></div>';});
+ h+='</div>';
+ if(domsHere.length)h+='<div class="chips" style="margin-top:8px">'+domsHere.map(dm=>'<span class="chip" style="border-left:3px solid '+domainPalette[dm]+'">'+shortDom(dm)+'</span>').join('')+'</div>';
  h+='</div>';
  body.innerHTML=h;
  body.scrollIntoView&&window.matchMedia('(max-width:960px)').matches&&body.scrollIntoView({behavior:'smooth',block:'nearest'});
