@@ -35,11 +35,10 @@ a{color:var(--accent)}
 .intro-lead{font-size:15px; line-height:1.5; color:var(--ink)}
 .intro-body{font-size:13px; line-height:1.55; color:var(--ink2)}
 .intro-src{font-size:11.5px; line-height:1.45; color:var(--mut)}
-.csrfilter{padding:8px 16px 14px}
-.csrfilter .lbl{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--mut)}
-.csrf-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:7px}
-.csrf-row label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2)}
-.csrf-row select{font:inherit;padding:4px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);max-width:340px}
+.csrlens{padding-top:0}
+.csrf{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);border:1px solid var(--line);background:#fff;padding:5px 10px 5px 12px;border-radius:8px;cursor:pointer}
+.csrf:hover{border-color:var(--accent)}
+.csrf select{font:inherit;font-size:12px;color:var(--ink2);border:none;background:transparent;cursor:pointer;outline:none;max-width:260px}
 .grid.hero{margin-top:20px}
 .grid.hero .card h2{font-size:14px}
 @media(max-width:960px){.grid{grid-template-columns:1fr}}
@@ -180,12 +179,9 @@ table{border-collapse:collapse; width:100%; font-size:12.5px}
  <div class="card">
    <h2>District map</h2>
    <div class="lens" id="lens"></div>
-   <div class="csrfilter">
-    <span class="lbl">CSR data filters</span> <span class="mini">— applies to the CSR lens, tooltip, district detail, spend trend &amp; table below</span>
-    <div class="csrf-row">
-     <label>Year <select id="csrYearSel"></select></label>
-     <label>Domain <select id="csrDomainSel"></select></label>
-    </div>
+   <div class="lens csrlens">
+    <label class="csrf">Year <select id="csrYearSel"></select></label>
+    <label class="csrf">Domain <select id="csrDomainSel"></select></label>
    </div>
    <div id="mapbox"></div>
    <div class="legend" id="legend"></div>
@@ -737,7 +733,7 @@ csrYearSel.value=CSR_YEAR;
 {const o=document.createElement('option');o.value='ALL';o.textContent='All domains';csrDomainSel.appendChild(o);}
 CSR_DOMAINS.forEach(dm=>{const o=document.createElement('option');o.value=dm;o.textContent=shortDom(dm);o.title=dm;csrDomainSel.appendChild(o);});
 csrDomainSel.value=CSR_DOMAIN;
-function onCsrFilter(){CSR_YEAR=csrYearSel.value;CSR_DOMAIN=csrDomainSel.value;refreshScales();paint();buildDisTbl();if(selD)selectDist(selD);}
+function onCsrFilter(){CSR_YEAR=csrYearSel.value;CSR_DOMAIN=csrDomainSel.value;curLens='csr';refreshScales();paint();buildDisTbl();if(selD)selectDist(selD);}
 csrYearSel.addEventListener('change',onCsrFilter);
 csrDomainSel.addEventListener('change',onCsrFilter);
 
