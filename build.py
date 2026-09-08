@@ -88,8 +88,9 @@ svg.map{width:100%; height:auto; display:block}
 .blist li{padding:5px 0; border-bottom:1px solid var(--line2); font-size:13px}
 .blist li:last-child{border:0}
 .spark{display:flex; align-items:flex-end; gap:3px; height:44px; margin-top:6px}
-.spark .bar{flex:1; background:var(--accent); border-radius:2px 2px 0 0; min-height:2px; opacity:.85}
+.spark .bar{flex:1; display:flex; flex-direction:column-reverse; background:var(--line2); border-radius:2px 2px 0 0; overflow:hidden; min-height:2px; opacity:.9}
 .spark .bar:hover{opacity:1}
+.spark .seg{width:100%}
 .sparkx{display:flex; justify-content:space-between; font-size:9px; color:var(--mut); margin-top:3px}
 /* matrix */
 .mtx{overflow-x:auto}
@@ -392,6 +393,7 @@ const seq=['#eaf1f7','#cfe0ee','#a7c7e0','#6fa3cc','#3f7cb0','#1f5a8f','#0d3c6b'
 function seqColor(v,max){if(!max||v<=0)return '#f1f5fa'; const t=v/max; const i=Math.min(seq.length-1,Math.floor(t*(seq.length-1)+0.001)); return seq[Math.max(1,i)];}
 const themePalette={}; const TP=['#0d6e8c','#c2410c','#4d7c2f','#7c3a86','#b45309','#1f5a8f','#0e8074','#a1344b','#5b6bbf','#8a6d1a','#2b8a3e','#9a3412'];
 THEMES.forEach((t,i)=>themePalette[t]=TP[i%TP.length]);
+const domainPalette={}; CSR_DOMAINS.forEach((dm,i)=>domainPalette[dm]=TP[i%TP.length]);
 
 /* ---------- lenses ---------- */
 let maxP,maxCSR,maxT;
@@ -550,11 +552,20 @@ function selectDist(name){selD=name;
  const ext=extByDist(name);
  if(ext.length){h+='<div class="sec"><div class="t">Other orgs — indicative ✳</div><div class="chips">'+ext.map(o=>'<span class="chip" style="border-left:3px solid #b07a1f">'+o+'</span>').join('')+'</div></div>';}
  if(GOVT_DMF[name]){h+='<div class="sec"><div class="t">DMF mining fund ✳</div><div class="blk">₹'+GOVT_DMF[name]+' Cr collected (cumulative to Mar-2018, CSE) — mining-affected-area fund.</div></div>';}
- // CSR sparkline
- const yr=[...YEARS].reverse(); const vals=yr.map(y=>csrVal(name,y,CSR_DOMAIN)); const mx=Math.max(...vals,1);
- h+='<div class="sec"><div class="t">CSR spend trend (₹ Cr)'+(CSR_DOMAIN!=='ALL'?' — '+shortDom(CSR_DOMAIN):'')+'</div><div class="spark">';
- vals.forEach(val=>{h+='<div class="bar" style="height:'+(val/mx*100)+'%" title="'+fmtCr(val)+'"></div>';});
- h+='</div><div class="sparkx"><span>'+yr[0].slice(0,4)+'</span><span>'+yr[yr.length-1].slice(2)+'</span></div></div>';
+ // CSR spend trend — stacked by domain, dynamic to this district (independent of the map's Year/CSR Domain filter)
+ const yr=[...YEARS].reverse();
+ const byDom=v.csrByDomain||{};
+ const yrTot=yr.map(y=>v.csr[y]||0); const mx=Math.max(...yrTot,1);
+ const domsHere=CSR_DOMAINS.filter(dm=>yr.some(y=>((byDom[y]||{})[dm]||0)>0));
+ h+='<div class="sec"><div class="t">CSR spend trend (₹ Cr) — split by domain</div><div class="spark">';
+ yr.forEach((y,i)=>{const tot=yrTot[i];
+   h+='<div class="bar" style="height:'+(tot/mx*100)+'%" title="'+y+': '+fmtCr(tot)+'">';
+   domsHere.forEach(dm=>{const sv=(byDom[y]||{})[dm]||0; if(sv<=0)return;
+     h+='<div class="seg" style="height:'+(sv/tot*100)+'%;background:'+domainPalette[dm]+'" title="'+shortDom(dm)+' · '+y+': '+fmtCr(sv)+'"></div>';});
+   h+='</div>';});
+ h+='</div><div class="sparkx"><span>'+yr[0].slice(0,4)+'</span><span>'+yr[yr.length-1].slice(2)+'</span></div>';
+ if(domsHere.length)h+='<div class="chips" style="margin-top:6px">'+domsHere.map(dm=>'<span class="chip" style="border-left:3px solid '+domainPalette[dm]+'">'+shortDom(dm)+'</span>').join('')+'</div>';
+ h+='</div>';
  body.innerHTML=h;
  body.scrollIntoView&&window.matchMedia('(max-width:960px)').matches&&body.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
