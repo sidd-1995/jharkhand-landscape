@@ -35,6 +35,11 @@ a{color:var(--accent)}
 .intro-lead{font-size:15px; line-height:1.5; color:var(--ink)}
 .intro-body{font-size:13px; line-height:1.55; color:var(--ink2)}
 .intro-src{font-size:11.5px; line-height:1.45; color:var(--mut)}
+.csrfilter{padding:8px 16px 14px}
+.csrfilter .lbl{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--mut)}
+.csrf-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:7px}
+.csrf-row label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2)}
+.csrf-row select{font:inherit;padding:4px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);max-width:340px}
 .grid.hero{margin-top:20px}
 .grid.hero .card h2{font-size:14px}
 @media(max-width:960px){.grid{grid-template-columns:1fr}}
@@ -175,6 +180,13 @@ table{border-collapse:collapse; width:100%; font-size:12.5px}
  <div class="card">
    <h2>District map</h2>
    <div class="lens" id="lens"></div>
+   <div class="csrfilter">
+    <span class="lbl">CSR data filters</span> <span class="mini">— applies to the CSR lens, tooltip, district detail, spend trend &amp; table below</span>
+    <div class="csrf-row">
+     <label>Year <select id="csrYearSel"></select></label>
+     <label>Domain <select id="csrDomainSel"></select></label>
+    </div>
+   </div>
    <div id="mapbox"></div>
    <div class="legend" id="legend"></div>
  </div>
@@ -253,6 +265,24 @@ const MODEL=__MODEL__;
 const GEO=__GEO__;
 const D=MODEL.districts, CANON=MODEL.canon, THEMES=MODEL.themes, YEARS=MODEL.years, PARTNERS=MODEL.partners;
 const Y0=YEARS[0];
+/* ---------- CSR filters (year + development-sector domain) ---------- */
+const CSR_DOMAINS=MODEL.csrDomains||[];
+let CSR_YEAR=Y0, CSR_DOMAIN='ALL';
+function csrVal(d,y,dom){y=y||CSR_YEAR;dom=dom||CSR_DOMAIN;
+ if(y==='ALL')return YEARS.reduce((s,yy)=>s+csrVal(d,yy,dom),0);
+ if(!dom||dom==='ALL')return D[d].csr[y]||0;
+ const m=(D[d].csrByDomain||{})[y]; return m?(m[dom]||0):0;}
+const yearLabel=y=>y==='ALL'?'All years':y;
+const DOMSHORT={
+ 'Education, Differently Abled, livelihood':'Education & Livelihood',
+ 'Encouraging Sports':'Sports',
+ 'Environment, Animal Welfare, Conservation of Resources':'Environment',
+ 'Gender Equality, Women Empowerment, Old Age Homes, Reducing Inequalities':'Gender & Women Empowerment',
+ 'Health, Eradicating Hunger, Poverty and Malnutrition, Safe Drinking water, Sanitation':'Health & Sanitation',
+ 'Heritage Art And Culture':'Heritage, Art & Culture',
+ 'Other Sectors (Technology Incubator And benefits To Armed Forces And Admin Overheads)':'Other (Tech/Armed Forces/Admin)',
+ 'Others':'Others','Rural Development':'Rural Development','Slum Area Development':'Slum Area Development'};
+const shortDom=s=>DOMSHORT[s]||s;
 /* ---- WIDER ECOSYSTEM: external to the source files, compiled from public sources (INDICATIVE) ---- */
 const EXT_IMPL=[
  {name:'PRADAN',districts:['Khunti','Gumla','Godda','Hazaribagh','Dumka','Koderma','Ranchi','West Singhbhum'],focus:'Livelihoods · Women/SHGs · NRM',src:'https://www.pradan.net/'},
@@ -368,15 +398,15 @@ THEMES.forEach((t,i)=>themePalette[t]=TP[i%TP.length]);
 
 /* ---------- lenses ---------- */
 let maxP,maxCSR,maxT;
-function refreshScales(){maxP=Math.max(1,...CANON.map(effP));maxCSR=Math.max(...CANON.map(d=>D[d].csr[Y0]||0));maxT=Math.max(1,...CANON.map(effT));}
+function refreshScales(){maxP=Math.max(1,...CANON.map(effP));maxCSR=Math.max(...CANON.map(d=>csrVal(d)));maxT=Math.max(1,...CANON.map(effT));}
 refreshScales();
 const lenses={
  partners:{label:'Partner density',fill:d=>seqColor(effP(d),maxP),
    legend:()=>gradLegend(INCLUDE_EXT?'# orgs (incl. ✳)':'# partners',maxP)},
  themes:{label:'Theme breadth',fill:d=>seqColor(effT(d),maxT),
    legend:()=>gradLegend('# themes',maxT)},
- csr:{label:'CSR spend '+Y0,fill:d=>seqColor(D[d].csr[Y0]||0,maxCSR),
-   legend:()=>gradLegend('CSR (₹)',maxCSR,true)},
+ csr:{label:'CSR spend',fill:d=>seqColor(csrVal(d),maxCSR),
+   legend:()=>gradLegend('CSR '+yearLabel(CSR_YEAR)+(CSR_DOMAIN!=='ALL'?' · '+shortDom(CSR_DOMAIN):'')+' (₹)',maxCSR,true)},
  dom:{label:'Dominant theme',fill:d=>{const t=domTheme(d);return t?themePalette[t]:'#f1f5fa';},
    legend:()=>themeLegend()},
  gap:{label:'Coverage gap',fill:d=>{const n=effP(d),a=D[d].aspirational;if(n===0&&a)return '#c2410c';
@@ -448,7 +478,7 @@ mapbox.appendChild(svg);
 const tip=el('div'); tip.style.cssText='position:fixed;pointer-events:none;background:#0f2440;color:#fff;padding:7px 10px;border-radius:8px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:99;display:none;max-width:230px';
 document.body.appendChild(tip);
 function showTip(ev,name){const v=D[name];
- tip.innerHTML='<b>'+name+'</b> · health '+placeScore(name)+'/100<br>'+effP(name)+' org'+(effP(name)!=1?'s':'')+' · '+effT(name)+' themes<br>CSR '+Y0+': '+fmtCr(v.csr[Y0]||0)+(v.aspirational?' · <span style="color:#f0a878">Aspirational</span>':'');
+ tip.innerHTML='<b>'+name+'</b> · health '+placeScore(name)+'/100<br>'+effP(name)+' org'+(effP(name)!=1?'s':'')+' · '+effT(name)+' themes<br>CSR '+yearLabel(CSR_YEAR)+(CSR_DOMAIN!=='ALL'?' · '+shortDom(CSR_DOMAIN):'')+': '+fmtCr(csrVal(name))+(v.aspirational?' · <span style="color:#f0a878">Aspirational</span>':'');
  tip.style.display='block'; tip.style.left=Math.min(ev.clientX+14,innerWidth-240)+'px'; tip.style.top=(ev.clientY+14)+'px';}
 function hideTip(){tip.style.display='none';}
 
@@ -477,7 +507,7 @@ function selectDist(name){selD=name;
  h+='</span></div>';
  h+='<div class="kv"><div><div class="k">'+(INCLUDE_EXT?'Orgs':'Partners')+'</div><div class="v">'+effP(name)+'</div></div>'
    +'<div><div class="k">Themes</div><div class="v">'+effT(name)+'</div></div>'
-   +'<div><div class="k">CSR '+Y0+'</div><div class="v">'+fmtCr(v.csr[Y0]||0)+'</div></div></div>';
+   +'<div><div class="k">CSR '+yearLabel(CSR_YEAR)+(CSR_DOMAIN!=='ALL'?' · '+shortDom(CSR_DOMAIN):'')+'</div><div class="v">'+fmtCr(csrVal(name))+'</div></div></div>';
  // place health readout
  const ps=placeScore(name), pb=BAND[band(ps)], pt=placeTag(name);
  h+='<div class="sec"><div class="t">Place health score</div>'
@@ -523,8 +553,8 @@ function selectDist(name){selD=name;
  if(ext.length){h+='<div class="sec"><div class="t">Other orgs — indicative ✳</div><div class="chips">'+ext.map(o=>'<span class="chip" style="border-left:3px solid #b07a1f">'+o+'</span>').join('')+'</div></div>';}
  if(GOVT_DMF[name]){h+='<div class="sec"><div class="t">DMF mining fund ✳</div><div class="blk">₹'+GOVT_DMF[name]+' Cr collected (cumulative to Mar-2018, CSE) — mining-affected-area fund.</div></div>';}
  // CSR sparkline
- const yr=[...YEARS].reverse(); const vals=yr.map(y=>v.csr[y]||0); const mx=Math.max(...vals,1);
- h+='<div class="sec"><div class="t">CSR spend trend (₹ Cr)</div><div class="spark">';
+ const yr=[...YEARS].reverse(); const vals=yr.map(y=>csrVal(name,y,CSR_DOMAIN)); const mx=Math.max(...vals,1);
+ h+='<div class="sec"><div class="t">CSR spend trend (₹ Cr)'+(CSR_DOMAIN!=='ALL'?' — '+shortDom(CSR_DOMAIN):'')+'</div><div class="spark">';
  vals.forEach(val=>{h+='<div class="bar" style="height:'+(val/mx*100)+'%" title="'+fmtCr(val)+'"></div>';});
  h+='</div><div class="sparkx"><span>'+yr[0].slice(0,4)+'</span><span>'+yr[yr.length-1].slice(2)+'</span></div></div>';
  body.innerHTML=h;
@@ -584,9 +614,9 @@ let disSort={k:'partners',asc:false};
 function buildDisTbl(){
  const box=document.getElementById('distbl');
  let rows=CANON.map(d=>({d,partners:effP(d),themes:effT(d),
-   asp:D[d].aspirational?1:0,tri:D[d].tri?1:0,csr:D[d].csr[Y0]||0,plist:effPList(d)}));
+   asp:D[d].aspirational?1:0,tri:D[d].tri?1:0,csr:csrVal(d),plist:effPList(d)}));
  rows.sort((a,b)=>{let x=a[disSort.k],y=b[disSort.k];if(typeof x==='string')return disSort.asc?x.localeCompare(y):y.localeCompare(x);return disSort.asc?x-y:y-x;});
- const cols=[['d','District'],['partners','Partners'],['themes','Themes'],['asp','Asp.'],['tri','TRI'],['csr','CSR '+Y0]];
+ const cols=[['d','District'],['partners','Partners'],['themes','Themes'],['asp','Asp.'],['tri','TRI'],['csr','CSR '+yearLabel(CSR_YEAR)+(CSR_DOMAIN!=='ALL'?' · '+shortDom(CSR_DOMAIN):'')]];
  let h='<table><thead><tr>';cols.forEach(c=>h+='<th data-k="'+c[0]+'"'+(c[0]!=='d'?' class="num"':'')+'>'+c[1]+(disSort.k===c[0]?(disSort.asc?' ▲':' ▼'):'')+'</th>');h+='<th>Who</th></tr></thead><tbody>';
  rows.forEach(r=>{const bg=r.partners===0?'background:#fdf3ee':'';
    h+='<tr style="'+bg+'"><td><span class="dot" style="background:'+seqColor(r.partners,maxP)+'"></span><b class="pill" data-d="'+r.d+'">'+r.d+'</b></td>'
@@ -698,6 +728,18 @@ function buildGovt(){
 /* toggle-dependent surfaces */
 function renderScored(){refreshScales(); renderStrip(); paint(); buildHealth(); buildPlaceHealth(); buildDisTbl(); updateFoot(); if(selD)selectDist(selD);}
 document.getElementById('extToggle').addEventListener('change',e=>{INCLUDE_EXT=e.target.checked; renderScored();});
+
+/* CSR filters (year + domain) */
+const csrYearSel=document.getElementById('csrYearSel'), csrDomainSel=document.getElementById('csrDomainSel');
+{const o=document.createElement('option');o.value='ALL';o.textContent='All years ('+YEARS[YEARS.length-1]+' – '+YEARS[0]+')';csrYearSel.appendChild(o);}
+YEARS.forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=y;csrYearSel.appendChild(o);});
+csrYearSel.value=CSR_YEAR;
+{const o=document.createElement('option');o.value='ALL';o.textContent='All domains';csrDomainSel.appendChild(o);}
+CSR_DOMAINS.forEach(dm=>{const o=document.createElement('option');o.value=dm;o.textContent=shortDom(dm);o.title=dm;csrDomainSel.appendChild(o);});
+csrDomainSel.value=CSR_DOMAIN;
+function onCsrFilter(){CSR_YEAR=csrYearSel.value;CSR_DOMAIN=csrDomainSel.value;refreshScales();paint();buildDisTbl();if(selD)selectDist(selD);}
+csrYearSel.addEventListener('change',onCsrFilter);
+csrDomainSel.addEventListener('change',onCsrFilter);
 
 /* initial render */
 renderStrip(); paint(); buildHealth(); buildMatrix(); buildPlaceHealth(); buildDir(); buildDisTbl(); updateFoot(); buildExt(); buildGovt();
